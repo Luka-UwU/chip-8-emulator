@@ -101,9 +101,67 @@ void Chip8System::updateTimers() {
 uint16_t Chip8System::fetchOpcode() {
 	// Each opcode is 2 bytes, so we fetch two consecutive bytes from memory
 	uint16_t opcode = (memory[pc] << 8) | memory[pc + 1];
+	std::cout << "PC: 0x" << std::hex << pc << " | Opcode: 0x" << opcode << "\n";
 	pc += 2; // Move the program counter to the next instruction
+	
 	return opcode;
 }
+
+void Chip8System::decodeAndExecute(uint16_t opcode) {
+
+	switch (opcode & 0xF000) {
+		case 0x0000:
+			if (opcode == 0x00E0) {
+				//Clear display
+				memset(video, 0, sizeof(video));
+			}
+			else if (opcode == 0x00EE) {
+				//Return from subroutine
+				--sp;
+				pc = stack[sp];
+			}
+			break;
+		
+		case 0x1000:
+			//1nnn - JP addr
+			//Jump to adress nnn
+			//Set pc to nnn
+			pc = opcode & 0x0FFF;
+			break;
+
+		case 0x6000: {
+			//6xkk - LD Vx, byte
+			//Set Vx to kk
+			uint8_t x = (opcode & 0x0F00) >> 8;
+			uint8_t kk = opcode & 0x00FF;
+			V[x] = kk;
+			break;
+			}
+
+		case 0x7000: {
+			//7xkk - ADD Vx, byte
+			//Add kk to Vx, then store the result in Vx
+			uint8_t x = (opcode & 0x0F00) >> 8;
+			uint8_t kk = opcode & 0x00FF;
+			V[x] += kk;
+			break;
+		}
+
+		case 0xA000:
+			// Set I to the address NNN
+			I = opcode & 0x0FFF;
+			break;
+
+		case 0xD000:
+			//Dxyn = DRW Vx, Vy, nibble
+			//Display n-byte sprite tarting at memory location I at (Vx, Vy), set VF = collision
+			break;
+		
+
+
+	}
+}
+
 
 void Chip8System::cycle() {
 	// Fetch
